@@ -12,10 +12,13 @@
 
 #include "../push_swap.h"
 #include "pqueue.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 void just_print(char *holder) {
   write(1, holder, ft_strlen(holder));
@@ -57,18 +60,24 @@ void sort3(int *stack) {
     swap(stack, NULL);
 }
 
-typedef struct s_node {
-  pqueue_pri_t instructions_size;
+typedef struct s_Node {
+  int instructionCount;
   char *instructions;
-  size_t pos;
   int *stack_a;
   int *stack_b;
   int start;
+  int s_start;
   int end;
+  int s_end;
   int middle;
-  int lower;
-  int upper;
-} t_node;
+  int chunkSize;
+} Node;
+
+typedef struct s_HeapItem {
+  pqueue_pri_t score;
+  Node *data;
+  size_t pos;
+} HeapItem;
 
 int *duplicate_stack(int *stack) {
   int *clone;
@@ -86,8 +95,7 @@ int *duplicate_stack(int *stack) {
   return (clone);
 }
 
-char *duplicate_instructions(char *instructions,
-                             pqueue_pri_t instructions_size) {
+char *duplicate_instructions(char *instructions, int instructions_size) {
   char *clone;
   int i;
 
@@ -110,72 +118,19 @@ char *duplicate_instructions(char *instructions,
 #define PB 4
 #define TOP -1
 #define BOTTOM 1
-
-t_node *init_node(int *stack_a, int *stack_b, int start, int end, int lower,
-                  int upper, int middle, pqueue_pri_t instructions_size,
-                  char *instructions) {
-  t_node *node;
-
-  node = ft_calloc(1, sizeof(t_node));
-  if (!node)
-    exit(1);
-  node->instructions_size = instructions_size;
-  node->instructions = duplicate_instructions(instructions, instructions_size);
-  node->pos = 0;
-  node->stack_a = duplicate_stack(stack_a);
-  node->stack_b = duplicate_stack(stack_b);
-  node->middle = middle;
-  node->start = start;
-  node->end = end;
-  node->lower = lower;
-  node->upper = upper;
-
-  return (node);
-}
-
+/*
 static int cmp_pri(pqueue_pri_t next, pqueue_pri_t curr) {
-  return (next <= curr);
+  return (next < curr);
 }
 
-static pqueue_pri_t get_pri(void *a) {
-  return ((t_node *)a)->instructions_size;
-}
+static pqueue_pri_t get_pri(void *a) { return ((HeapItem *)a)->score; }
 
-static void set_pri(void *a, pqueue_pri_t pri) {
-  ((t_node *)a)->instructions_size = pri;
-}
+static void set_pri(void *a, pqueue_pri_t pri) { ((HeapItem *)a)->score = pri; }
 
-static size_t get_pos(void *a) { return ((t_node *)a)->pos; }
+static size_t get_pos(void *a) { return ((HeapItem *)a)->pos; }
 
-static void set_pos(void *a, size_t pos) { ((t_node *)a)->pos = pos; }
-
-int get_near_dist(t_node *curr_state, t_struct *data, int direction) {
-  int index;
-  int control;
-  int dist;
-
-  if (direction == TOP) {
-    index = curr_state->stack_a[0];
-    control = 0;
-  }
-  if (direction == BOTTOM) {
-    index = 1;
-    control = curr_state->stack_a[0];
-  }
-
-  dist = 0;
-  while (index < control) {
-
-    if (curr_state->stack_a[index] >= data->sorted[curr_state->start] &&
-        curr_state->stack_a[index] <= data->sorted[curr_state->end - 1]) {
-      return (dist);
-    }
-    index += direction;
-    dist++;
-  }
-
-  return (-1000);
-}
+static void set_pos(void *a, size_t pos) { ((HeapItem *)a)->pos = pos; }
+*/
 /*
       push('b', data->stack_a, data->stack_b);
       if (data->stack_b[data->stack_b[0]] < data->sorted[data->midle]) {
@@ -185,108 +140,165 @@ int get_near_dist(t_node *curr_state, t_struct *data, int direction) {
       } else
         data->upper++;
  */
-void execute_instructions(t_node *node, int dest, int direction) {
-  // execute and insert the instructions RA or RRA into the instructions array
-  // push then maybe rotate insert them into the instructions array
-  int i;
-
-  i = 0;
-  if (direction == TOP) {
-    while (dest) {
-      rotate(node->stack_a, 'a', false);
-      node->instructions[i] = RA;
-      i++;
-      dest--;
-    }
-    push('b', node->stack_a, node->stack_b, false);
-    node->instructions[i] = PB;
-  } else if (direction == BOTTOM) {
-  }
-}
-
-char *simulate(t_struct *data) {
-  pqueue_t *pq;
-  t_node *genesis_node;
-  t_node *tmp;
-  int near_dist;
-
-  pq = pqueue_init(100, cmp_pri, get_pri, set_pri, get_pos, set_pos);
-
-  genesis_node = init_node(data->stack_a, data->stack_b, data->start, data->end,
-                           data->midle, data->lower, data->upper, 0, NULL);
-
-  pqueue_insert(pq, genesis_node);
-
-  while (/*something*/ 1) {
-    // peek in the first node
-    tmp = pqueue_peek(pq);
-
-    // get the index of the element near the top of the stack a
-    near_dist = get_near_dist(tmp, data, TOP);
-
-    if (near_dist == -1000) {
-      ft_printf(
-          "FUUUUUUUUUUCK shit gone very south in the get near index funciton "
-          "in the simulation, u may have some fun with this one ma guy\n");
-      exit(1);
-    }
-
-    // create a node for the new top state
-    genesis_node = init_node(tmp->stack_a, tmp->stack_b, tmp->start, tmp->end,
-                             tmp->lower, tmp->middle, tmp->upper,
-                             tmp->instructions_size, tmp->instructions);
-
-    // get the element to the top and push it to stack b and maybe rotate it too
-    execute_instructions(genesis_node, near_dist, TOP);
-
-    // and save those instructuions insert in the queue
-    // get the index of the element near the bottom of the stack a
-    // create a node for the new bottom state
-    // get the element to the top and push it to stack b and maybe rotate
-    // save those instructions insert in the queue
-  }
-}
 
 void change_values(t_struct *data) {
+  static int lower = 0;
+  static int upper = 0;
 
-  /*
-        if (data->lower == data->offset)
-        {
-                if (data->start - data->offset < 0)
-                        data->start = 0;
-                else
-                        data->start -= data->offset;
-                data->lower = 0;
+  ft_printf("lower: %d, upper: %d\n", data->lower, data->upper);
+  ft_printf("start: %d, end: %d\n", data->start, data->end);
+  if (data->lower == data->offset) {
+    printf("we are updating the start, %d\n", lower++);
+    if (data->start - data->offset < 0)
+      data->start = 0;
+    else
+      data->start -= data->offset;
+    data->lower = 0;
+  }
+  if (data->upper == data->offset) {
+    printf("we are updating the end, %d\n", upper++);
+    if (data->end + data->offset >= data->big_val_index)
+      data->end = data->big_val_index + 1;
+    else
+      data->end += data->offset;
+    data->upper = 0;
+  }
+}
+
+// Node *initNode() {}
+
+HeapItem *initHeapItem(Node *data, int score) {
+  HeapItem *fresh;
+
+  fresh = ft_calloc(1, sizeof(HeapItem));
+  if (!fresh) {
+    exit(1);
+  }
+
+  fresh->score = score;
+  fresh->data = data;
+
+  return (fresh);
+}
+
+typedef struct s_chunkBorders {
+  int start;
+  int end;
+
+} ChunkBorders;
+
+typedef struct s_alignedChunks {
+  int *chunks;
+  int chunkCount;
+  ChunkBorders Borders[100];
+} AChunks;
+
+// i am not under any circumstances proud of this function, and yes i am writing
+// this for myself more than for other putential reader.
+AChunks *alignChunks(t_struct *data) {
+  AChunks *final;
+  int found[7000] = {0};
+
+  final = ft_calloc(1, sizeof(AChunks));
+  if (!final)
+    exit(1);
+
+  final->chunks = ft_calloc(data->totalToBeTransfered, sizeof(int));
+  if (!final->chunks)
+    exit(1);
+
+  int i = 0;
+  final->chunkCount = 0;
+  for (int a = 0; a < data->totalToBeTransfered / (data->offset * 2); a++) {
+    change_values(data);
+    // printf("offset: %d, middle: %d\n", data->offset, data->midle);
+    //    ft_printf("lower: %d, upper: %d\n", data->lower, data->upper);
+    //   ft_printf("start: %d, end: %d\n", data->start, data->end);
+    printf("extracting the chunk\n");
+    int j = data->start;
+    final->Borders[final->chunkCount].start = i;
+    while (j < data->end) {
+      // printf("hello %d\n", j);
+      if (found[j] == 0) {
+        if (data->sorted[j] < data->sorted[data->midle]) {
+          data->lower++;
+        } else
+          data->upper++;
+        final->chunks[i] = j;
+        found[j] = 1;
+        i++;
+      }
+      j++;
+    }
+    final->Borders[final->chunkCount].end = i;
+    final->chunkCount++;
+  }
+  return (final);
+}
+
+void enumerateStacks(t_struct *data) {
+  if (data->stack_a[0]) {
+    for (int i = 1; i <= data->stack_a[0]; i++) {
+      for (int j = 0; j < data->total; j++) {
+        if (data->stack_a[i] == data->sorted[j]) {
+          data->stack_a[i] = j;
+          break;
         }
-        else if (data->upper == data->offset)
-        {
-                if (data->end + data->offset >= data->big_val_index)
-                        data->end = data->big_val_index + 1;
-                else
-                        data->end += data->offset;
-                data->upper = 0;
+      }
+    }
+  }
+  if (data->stack_b[0]) {
+    for (int i = 1; i <= data->stack_b[0]; i++) {
+      for (int j = 0; j < data->total; j++) {
+        if (data->stack_b[i] == data->sorted[j]) {
+          data->stack_b[i] = j;
+          break;
         }
-  */
+      }
+    }
+  }
 }
 
 void dump_a_to_b(t_struct *data) {
-  char *instructions;
+  // pqueue_t *pq;
+  // HeapItem *genesis_node;
+  // HeapItem *tmp;
 
-  instructions = simulate(data);
-  while (data->stack_a[0] > 3) {
-    /*
-    change_values(data);
-    if (data->stack_a[data->stack_a[0]] >= data->sorted[data->start] &&
-        data->stack_a[data->stack_a[0]] <= data->sorted[data->end - 1]) {
-      push('b', data->stack_a, data->stack_b);
-      if (data->stack_b[data->stack_b[0]] < data->sorted[data->midle]) {
-        data->lower++;
-        if (data->stack_b[0] > 1)
-          rotate(data->stack_b, 'b');
-      } else
-        data->upper++;
-    } else
-      rotate(data->stack_a, 'a');
-    */
+  AChunks *alignedChunks = alignChunks(data);
+  int i;
+
+  // replace the values in the stack with there indexes from the sorted array (i
+  // call it enumerateStack)
+  enumerateStacks(data);
+
+  printf("size of stack_a: %d\n", data->stack_a[0]);
+  for (int a = 4; a <= data->stack_a[0]; a++) {
+    printf("idx in stack_a: %d - idx in sorted: %d\n", a, data->stack_a[a]);
+    printf("value in sorted: %d\n", data->sorted[data->stack_a[a]]);
+  }
+
+  i = 0;
+  while (i < alignedChunks->chunkCount) {
+    // prepare the current stack state for the beam search
+    //
+    // pass the heap node, and chunk info to the beam search engine
+    //
+    // run the beam search and get the best way to pass the current chunk
+    //
+    // apply the chunk moves to the actual stack
+
+    i++;
+  }
+
+  // revese the enumeration so the next stage of sorting is not affected by this
+  // stage changes to the stack.
+
+  ft_printf("printing aligned chunks\n");
+  for (int i = 0; i < alignedChunks->chunkCount; i++) {
+    printf("chunk index: %d\n", i);
+    for (int j = alignedChunks->Borders[i].start;
+         j < alignedChunks->Borders[i].end; j++) {
+      printf("=> idx: %d - %d\n", j, alignedChunks->chunks[j]);
+    }
   }
 }

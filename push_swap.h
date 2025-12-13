@@ -23,7 +23,9 @@ typedef struct s_struct {
   int *stack_a;
   int *stack_b;
   int *sorted;
-  int total;
+  int total;               // total number of element provided
+  int totalToBeTransfered; // total number of elements to be trasfered to stack
+                           // b
   int offset;
   int midle;
   int start;

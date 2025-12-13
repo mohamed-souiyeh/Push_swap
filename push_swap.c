@@ -30,7 +30,7 @@ void sort5(t_struct *data) {
       push('b', data->stack_a, data->stack_b, true);
     else if (data->stack_a[1] == data->sorted[data->big_val_index] ||
              data->stack_a[1] == data->sorted[0])
-      reverse_rotate(data->stack_a, 'a');
+      reverse_rotate(data->stack_a, 'a', true);
     else
       rotate(data->stack_a, 'a', true);
   }
@@ -59,8 +59,8 @@ int main(int ac, char **av) {
   else
     process_data(&av, &ac);
   initialize_struct(&data, ac, av);
-  if (!check_sorted(data))
-    return (0);
+  // if (!check_sorted(data))
+  //   return (0);
   if (data->stack_a[0] > 5)
     sorter(data);
   else
