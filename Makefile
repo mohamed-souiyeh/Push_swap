@@ -20,7 +20,7 @@ SRCS 			=	operations.c push_swap.c initializer.c filling_stack.c \
 					custom_functions/ft_itoa.c custom_functions/ft_printf.c custom_functions/ft_split.c \
 					custom_functions/ft_strchr.c custom_functions/ft_strjoin.c custom_functions/ft_strlcpy.c \
 					custom_functions/ft_strlen.c custom_functions/ft_strncmp.c custom_functions/ft_we_need_help.c \
-					sorting_functions/sorter_utils_2.c
+					sorting_functions/sorter_utils_2.c sorting_functions/pqueue.c
 
 BONUS_SRCS		=	checker_bonus/custom_functions/ft_atoi_bonus.c checker_bonus/custom_functions/ft_bzero_bonus.c \
 					checker_bonus/custom_functions/ft_calloc_bonus.c checker_bonus/custom_functions/ft_functions_collection_bonus.c \

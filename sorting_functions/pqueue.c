@@ -179,7 +179,7 @@ void *pqueue_peek(pqueue_t *q) {
   d = q->d[1];
   return d;
 }
-
+/*
 void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
   int i;
 
@@ -190,11 +190,11 @@ void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
     print(out, q->d[i]);
   }
 }
+*/
+// static void set_pos(void *d, size_t val) {  do nothing  }
 
-static void set_pos(void *d, size_t val) { /* do nothing */ }
-
-static void set_pri(void *d, pqueue_pri_t pri) { /* do nothing */ }
-
+// static void set_pri(void *d, pqueue_pri_t pri) {  do nothing  }
+/*
 void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
   pqueue_t *dup;
   void *e;
@@ -214,14 +214,14 @@ void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
 
 static int subtree_is_valid(pqueue_t *q, int pos) {
   if (left(pos) < q->size) {
-    /* has a left child */
+    // has a left child
     if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[left(pos)])))
       return 0;
     if (!subtree_is_valid(q, left(pos)))
       return 0;
   }
   if (right(pos) < q->size) {
-    /* has a right child */
+    // has a right child
     if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[right(pos)])))
       return 0;
     if (!subtree_is_valid(q, right(pos)))
@@ -231,3 +231,4 @@ static int subtree_is_valid(pqueue_t *q, int pos) {
 }
 
 int pqueue_is_valid(pqueue_t *q) { return subtree_is_valid(q, 1); }
+*/

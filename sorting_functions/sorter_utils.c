@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 void just_print(char *holder) {
   write(1, holder, ft_strlen(holder));
@@ -167,6 +168,7 @@ void enumerateStacks(t_struct *data) {
 #define RB 2
 #define RR 3
 #define PB 4
+#define RRA 5
 #define TOP -1
 #define BOTTOM 1
 
@@ -176,6 +178,7 @@ typedef struct s_Node {
   int *stack_a; // stack containing the indexes of values from the sorted array
                 // instead of the actual values
   int *stack_b; // same for this one
+  int middle;
 
   int chunkSize;
   int chunkv[500]; // the chunk values which are indexes in the sorted array
@@ -223,7 +226,7 @@ char *duplicate_instructions(char *instructions, int instructions_size) {
   return (clone);
 }
 
-Node *initNode(int *stack_a, int *stack_b) {
+Node *initNode(int *stack_a, int *stack_b, int middle) {
 
   Node *fresh;
 
@@ -236,6 +239,7 @@ Node *initNode(int *stack_a, int *stack_b) {
   memset(fresh->instructions, 0, sizeof(fresh->instructions));
   fresh->stack_a = duplicate_stack(stack_a);
   fresh->stack_b = duplicate_stack(stack_b);
+  fresh->middle = middle;
   fresh->chunkSize = 0;
   memset(fresh->chunkv, 0, sizeof(fresh->chunkv));
   memset(fresh->foundChunkTargets, 0, sizeof(fresh->foundChunkTargets));
@@ -290,27 +294,82 @@ static size_t get_pos(void *a) { return ((HeapItem *)a)->pos; }
 static void set_pos(void *a, size_t pos) { ((HeapItem *)a)->pos = pos; }
 
 #define BEAMWIDTH 42
+#define FWD true
+#define REV false
+int getTargetIdx(Node *candidateData, int target) {
+
+  for (int i = 1; i <= candidateData->stack_a[0]; i++) {
+    if (candidateData->stack_a[i] == target)
+      return (i);
+  }
+
+  return (-1);
+}
+
+void moveTargetAndSaveMoves(Node *candidateData, int target,
+                            int targetStackIdx) {
+  int fwd =
+      candidateData->stack_a[0] - targetStackIdx; // forward rotation distance
+  int rev = targetStackIdx;                       // reverse rotation distance
+  bool direction = rev < fwd ? false : true;
+
+  while (candidateData->stack_a[candidateData->stack_a[0]] != target) {
+    if (direction == FWD) {
+      rotate(candidateData->stack_a, 'a', false);
+      if (candidateData->instructions[candidateData->instructionsCount - 1] ==
+          RB) {
+        candidateData->instructions[candidateData->instructionsCount - 1] = RR;
+      } else {
+        candidateData->instructions[candidateData->instructionsCount] = RA;
+        candidateData->instructionsCount++;
+      }
+    } else if (direction == REV) {
+      reverse_rotate(candidateData->stack_a, 'a', false);
+      candidateData->instructions[candidateData->instructionsCount] = RRA;
+      candidateData->instructionsCount++;
+    }
+  }
+
+  push('b', candidateData->stack_a, candidateData->stack_b, false);
+  candidateData->instructions[candidateData->instructionsCount] = PB;
+  candidateData->instructionsCount++;
+
+  if (target < candidateData->middle) {
+    rotate(candidateData->stack_b, 'b', false);
+    candidateData->instructions[candidateData->instructionsCount] = RB;
+    candidateData->instructionsCount++;
+  }
+}
 
 Node *beamSearch(Node *initialNode, int chunkSize) {
 
   pqueue_t *currentGenration;
   pqueue_t *candidates;
-  HeapItem *genesis_node;
+  HeapItem *genesisNode;
+  // HeapItem *candidateNode; //
+  // ------------------------------------------------------------------------------------------------------------
   HeapItem *parent;
   Node *parentData;
-  Node *bestNode;
+  Node *candidateData;
+  Node *bestNode = NULL;
   int i;
   int j;
+  int target;
+  int targetStackIdx;
 
   currentGenration =
       pqueue_init(BEAMWIDTH, cmp_pri, get_pri, set_pri, get_pos, set_pos);
-  genesis_node = initHeapItem(initialNode, 0);
-  pqueue_insert(currentGenration, genesis_node);
+  genesisNode = initHeapItem(initialNode, 0);
+  pqueue_insert(currentGenration, genesisNode);
 
   i = 0;
   while (i < chunkSize) {
     candidates = pqueue_init(chunkSize * chunkSize, cmp_pri, get_pri, set_pri,
                              get_pos, set_pos);
+    (void)
+        candidates; // ---------------------------------------------------------------------------------------------------------------------
+    // exploring each timeline possible candidate timelines (feels like the
+    // knock off version of Dr Strange simulating how to beat thanos)
     while (pqueue_size(currentGenration)) {
 
       parent = pqueue_pop(currentGenration);
@@ -322,6 +381,43 @@ Node *beamSearch(Node *initialNode, int chunkSize) {
       while (j < chunkSize) {
         if (parentData->foundChunkTargets[parentData->chunkv[j]] == 1)
           continue;
+        target = parentData->chunkv[j];
+
+        // create the candidate as a copy of the current parent
+        candidateData = duplicateNode(parentData);
+
+        // mark the target as found
+        candidateData->foundChunkTargets[target] = 1;
+
+        // find the current chunk target in stack_a and decide which direction
+        targetStackIdx = getTargetIdx(candidateData, target);
+
+        if (targetStackIdx == -1) {
+          printf("buddy shit hit the fan with getTargetIdx in beamSearch "
+                 "function");
+          exit(1);
+        }
+
+        printf("current target is: %d\n", target);
+        printf("current target idx: %d\n", targetStackIdx);
+        printf("current cost: %d\n", candidateData->instructionsCount);
+        printf("----------printing stack_a before--------------\n");
+        for (int k = 1; k <= candidateData->stack_a[0]; k++) {
+          printf("idx: %d, value: %d\n", k, candidateData->stack_a[k]);
+        }
+        printf("done printing before moving target\n");
+
+        moveTargetAndSaveMoves(candidateData, target, targetStackIdx);
+
+        printf("current cost: %d\n", candidateData->instructionsCount);
+        printf("----------printing stack_a after--------------\n");
+        for (int k = 1; k <= candidateData->stack_a[0]; k++) {
+          printf("idx: %d, value: %d\n", k, candidateData->stack_a[k]);
+        }
+        printf("done printing after moving target\n");
+        exit(1337);
+        // to rotate move the target to stack_b while recording the used moves
+        // update the candidate instructionsCount
       }
     }
 
@@ -332,6 +428,7 @@ Node *beamSearch(Node *initialNode, int chunkSize) {
     i++;
   }
 
+  // dont forget to empty the currentGeneration heap and free everything in it
   return (bestNode);
 }
 
@@ -345,41 +442,51 @@ void dump_a_to_b(t_struct *data) {
   Node *bestNode;
   int i;
 
+  ft_printf("printing aligned chunks\n");
+  for (int i = 0; i < alignedChunks->chunkCount; i++) {
+    printf("chunk index: %d\n", i);
+    for (int j = alignedChunks->Borders[i].start;
+         j < alignedChunks->Borders[i].end; j++) {
+      printf("=> idx: %d - %d\n", j, alignedChunks->chunks[j]);
+    }
+  }
+
   // replace the values in the stack with there indexes from the sorted array (i
   // call it enumerateStack)
   enumerateStacks(data);
-
-  printf("size of stack_a: %d\n", data->stack_a[0]);
-  for (int a = 4; a <= data->stack_a[0]; a++) {
-    printf("idx in stack_a: %d - idx in sorted: %d\n", a, data->stack_a[a]);
-    printf("value in sorted: %d\n", data->sorted[data->stack_a[a]]);
-  }
+  /*
+    printf("size of stack_a: %d\n", data->stack_a[0]);
+    for (int a = 4; a <= data->stack_a[0]; a++) {
+      printf("idx in stack_a: %d - idx in sorted: %d\n", a, data->stack_a[a]);
+      printf("value in sorted: %d\n", data->sorted[data->stack_a[a]]);
+    }
+  */
 
   i = 0;
   while (i < alignedChunks->chunkCount) {
     // prepare the current stack state for the beam search
-    initialNode = initNode(data->stack_a, data->stack_b);
+    initialNode = initNode(data->stack_a, data->stack_b, data->midle);
 
     initialNode->chunkSize = alignedChunks->Borders[i].size;
     for (int s = alignedChunks->Borders[i].start, idx = 0;
          s < alignedChunks->Borders[i].end; s++, idx++) {
       initialNode->chunkv[idx] = alignedChunks->chunks[s];
     }
-    /*
-        printf("--------------------------------------------\n");
-        printf("node nbr: %d\n", i);
-        printf("node chunk size: %d\n", initialNode->chunkSize);
-        printf("printing chunkv\n");
-        for (int idx = 0; idx < initialNode->chunkSize; idx++) {
-          printf("idx: %d, value: %d\n", idx, initialNode->chunkv[idx]);
-        }
-        printf("--------------------------------------------\n");
-    */
+    printf("--------------------------------------------\n");
+    printf("node nbr: %d\n", i);
+    printf("node chunk size: %d\n", initialNode->chunkSize);
+    printf("printing chunkv\n");
+    for (int idx = 0; idx < initialNode->chunkSize; idx++) {
+      printf("idx: %d, value: %d\n", idx, initialNode->chunkv[idx]);
+    }
+    printf("--------------------------------------------\n");
 
     // pass the heap node, and chunk info to the beam search engine
     // run the beam search and get the best way to pass the current chunk
     bestNode = beamSearch(initialNode, alignedChunks->Borders[i].size);
 
+    (void)
+        bestNode; // ----------------------------------------------------------------------------------------------------------------
     // apply the chunk moves to the actual stack
 
     free(initialNode->stack_a);
@@ -390,13 +497,4 @@ void dump_a_to_b(t_struct *data) {
 
   // revese the enumeration so the next stage of sorting is not affected by this
   // stage changes to the stack.
-
-  ft_printf("printing aligned chunks\n");
-  for (int i = 0; i < alignedChunks->chunkCount; i++) {
-    printf("chunk index: %d\n", i);
-    for (int j = alignedChunks->Borders[i].start;
-         j < alignedChunks->Borders[i].end; j++) {
-      printf("=> idx: %d - %d\n", j, alignedChunks->chunks[j]);
-    }
-  }
 }

@@ -26,10 +26,10 @@ typedef struct s_struct {
   int total;               // total number of element provided
   int totalToBeTransfered; // total number of elements to be trasfered to stack
                            // b
-  int offset;
-  int midle;
-  int start;
-  int end;
+  int offset;              // chunk size
+  int midle;               // the index of the middle element
+  int start;               // index of the start of the current chunk range
+  int end;                 // index of the end of the current chunk range
   int big_val_index;
   int down;
   int up;
