@@ -40,7 +40,7 @@
 #include <string.h>
 
 /** priority data type */
-typedef unsigned long long pqueue_pri_t;
+typedef double pqueue_pri_t;
 
 /** callback functions to get/set/compare the priority of an element */
 typedef pqueue_pri_t (*pqueue_get_pri_f)(void *a);

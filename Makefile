@@ -37,7 +37,7 @@ OBJS			=	$(SRCS:.c=.o)
 
 BONUS_OBJS		=	$(BONUS_SRCS:.c=.o)
 
-CFLAGS			= 	-Wall -Wextra -Werror -g
+CFLAGS			= 	-Wall -Wextra -Werror -lm -g #-fsanitize=address
 
 $(NAME)			:	$(OBJS)
 					@cc $(CFLAGS) $(OBJS) -o $(NAME)

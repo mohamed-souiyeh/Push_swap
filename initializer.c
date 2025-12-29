@@ -20,7 +20,7 @@ int calculat_offset(int total_nums) {
   else if (total_nums < 150)
     return (total_nums / 6);
   else
-    return (total_nums / 13);
+    return (total_nums / 10);
 }
 
 int *eleminate_top_3(int *stack, int size) {
@@ -66,7 +66,7 @@ int *fill_and_sort(int *stack_a, int *total) {
     sorted[i] = stack_a[i + 1];
   sort(stack_a, sorted);
   if (stack_a[0] > 5) {
-    sorted = eleminate_top_3(sorted, stack_a[0]);
+    // sorted = eleminate_top_3(sorted, stack_a[0]);
     *total = stack_a[0] - 3;
   } else
     *total = stack_a[0];

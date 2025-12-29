@@ -12,7 +12,8 @@
 
 #include "../push_swap.h"
 #include <stdbool.h>
-#include <stdlib.h>
+// #include <stdio.h>
+// #include <stdlib.h>
 
 void prepare_for_big(t_struct *data) {
   while (data->up > 1) {
@@ -34,6 +35,7 @@ void decide(t_struct *data) {
 }
 
 void check_up_down(t_struct *data) {
+  // printf("big val index: %d\n", data->big_val_index);
   if (data->sorted[data->big_val_index] == data->stack_a[data->stack_a[0]])
     data->up--;
   else {
@@ -47,6 +49,7 @@ void dump_b_to_a(t_struct *data) {
   int index;
 
   index = get_big_index(data);
+  // printf("get_big_index: %d\n", index);
   if (index == -1)
     return (check_up_down(data));
   if (index <= data->stack_b[0] / 2)
@@ -61,8 +64,13 @@ void dump_b_to_a(t_struct *data) {
 
 void sorter(t_struct *data) {
   dump_a_to_b(data);
-  exit(123);
+  // printf("stack_a size: %d - stack_b size: %d\n", data->stack_a[0],
+  //        data->stack_b[0]);
+  // exit(123);
   sort3(data->stack_a);
-  while (data->down || data->stack_b[0] || data->up)
+  while (data->down || data->stack_b[0] || data->up) {
+    // printf("up: %d - down: %d - stack_b size: %d\n", data->up, data->down,
+    //        data->stack_b[0]);
     dump_b_to_a(data);
+  }
 }
